@@ -13,6 +13,7 @@ import com.dotcms.util.DotPreconditions;
 import com.dotmarketing.business.APILocator;
 import com.dotmarketing.portlets.contentlet.business.ContentletAPI;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
+import com.dotmarketing.util.Config;
 import com.dotmarketing.util.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liferay.portal.model.User;
@@ -98,7 +99,8 @@ public class CMSMaintenanceResource {
 			final ObjectMapper objectMapper) {
 
 		final DotSubmitter dotSubmitter = DotConcurrentFactory.getInstance().getSubmitter("DELETE_CONTENTS_SUBMITTER",
-				new DotConcurrentFactory.SubmitterConfigBuilder().poolSize(2).maxPoolSize(5).queueCapacity(100).build());
+				new DotConcurrentFactory.SubmitterConfigBuilder().poolSize(2).maxPoolSize(5)
+						.queueCapacity(Config.getIntProperty("DELETE_CONTENTS_SUBMITTER_QUEUE",1000)).build());
 		final CompletionService<Map<String, String>> completionService = new ExecutorCompletionService<>(dotSubmitter);
 		final List<Future<Map<String, String>>> futures = new ArrayList<>();
 		final HttpServletRequest statelessRequest = RequestUtil.INSTANCE.createStatelessRequest(request);
