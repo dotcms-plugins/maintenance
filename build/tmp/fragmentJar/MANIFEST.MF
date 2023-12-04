@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Bundle-Name: Rest Endpoint fragment
+Bundle-Description: dotCMS - Rest Endpoint fragment
+Bundle-Vendor: dotCMS
+Bundle-Version: 0.2
+Bundle-SymbolicName: com.dotcms.deletecmsmaintenance.fragment
+Bundle-ManifestVersion: 2
+Bundle-DocURL: https://dotcms.com/
+Fragment-Host: system.bundle; extension:=framework
+Export-Package: com.dotcms.api.web;version=0,com.dotcms.concurrent;versi
+ on=0,com.dotcms.rest;version=0,com.dotcms.rest.api.v1;version=0,com.dot
+ cms.rest.api.v1.authentication;version=0,com.dotcms.rest.config;version
+ =0,com.dotcms.util;version=0,com.dotmarketing.business;version=0,com.do
+ tmarketing.osgi;version=0,com.dotmarketing.portlets.contentlet.business
+ ;version=0,com.dotmarketing.portlets.contentlet.model;version=0,com.dot
+ marketing.util;version=0,com.fasterxml.jackson.annotation;version=0,com
+ .fasterxml.jackson.databind;version=0,com.liferay.portal.model;version=
+ 0,javax.servlet.http;version=0,javax.ws.rs;version=0,javax.ws.rs.core;v
+ ersion=0,org.apache.commons.lang.time;version=0,org.osgi.framework;vers
+ ion=0
+

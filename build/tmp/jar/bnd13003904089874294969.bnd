@@ -1,0 +1,6 @@
+#Mon Dec 04 00:09:47 CST 2023
+Bundle-Description=dotCMS - Rest Endpoint example
+Bundle-Vendor=dotCMS
+Bundle-DocURL=https\://dotcms.com/
+Import-Package=*;version\=0
+Bundle-Activator=com.dotcms.plugin.rest.Activator
