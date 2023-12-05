@@ -1,21 +1,15 @@
 package com.dotcms.plugin.rest;
 
-import com.dotcms.api.web.HttpServletRequestThreadLocal;
 import com.dotcms.concurrent.DotConcurrentFactory;
 import com.dotcms.concurrent.DotSubmitter;
-import com.dotcms.rest.EmptyHttpResponse;
 import com.dotcms.rest.WebResource;
-import com.dotcms.rest.api.v1.DotObjectMapperProvider;
-import com.dotcms.rest.api.v1.authentication.RequestUtil;
-import com.dotcms.rest.api.v1.authentication.ResponseUtil;
 import com.dotcms.util.CollectionsUtils;
 import com.dotcms.util.DotPreconditions;
 import com.dotmarketing.business.APILocator;
+import com.dotmarketing.exception.DotDataException;
 import com.dotmarketing.portlets.contentlet.business.ContentletAPI;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
-import com.dotmarketing.util.Config;
 import com.dotmarketing.util.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liferay.portal.model.User;
 import com.liferay.util.HttpHeaders;
 import com.liferay.util.StringPool;
@@ -51,13 +45,13 @@ public class CMSMaintenanceResource {
 	@POST
 	public Response doDelete(@Context final HttpServletRequest request,
 						 @Context final HttpServletResponse response,
-					   final DeleteContentsForm deleteContentsForm)  {
+					   final DeleteContentsForm deleteContentsForm) throws DotDataException {
 
 		final User user = new WebResource.InitBuilder(this.webResource).rejectWhenNoUser(true)
 				.requestAndResponse(request, response)
 				.requiredPortlet("maintenance")
 				.requiredBackendUser(true).init().getUser();
-		if (!user.isAdmin()) {
+		if (!APILocator.getRoleAPI().doesUserHaveRole(user, APILocator.getRoleAPI().loadCMSAdminRole())) {
 
 			Logger.debug(this.getClass().getName(), ()-> "User should be admin to delete contents");
 			throw new IllegalArgumentException("User should be admin to delete contents");
@@ -86,24 +80,18 @@ public class CMSMaintenanceResource {
 		@Override
 		public void write(final OutputStream output) throws IOException, WebApplicationException {
 
-			final ObjectMapper objectMapper = DotObjectMapperProvider.getInstance().getDefaultObjectMapper();
-			CMSMaintenanceResource.this.deleteMultipleContentlets(request, this.contentletIds, this.user, output, objectMapper);
+			CMSMaintenanceResource.this.deleteMultipleContentlets(this.contentletIds, this.user, output);
 		}
 	}
 
 	private void deleteMultipleContentlets(
-			final HttpServletRequest request,
 			final List<String> contentletIds,
 			final User user,
-			final OutputStream outputStream,
-			final ObjectMapper objectMapper) {
+			final OutputStream outputStream) {
 
-		final DotSubmitter dotSubmitter = DotConcurrentFactory.getInstance().getSubmitter("DELETE_CONTENTS_SUBMITTER",
-				new DotConcurrentFactory.SubmitterConfigBuilder().poolSize(2).maxPoolSize(5)
-						.queueCapacity(Config.getIntProperty("DELETE_CONTENTS_SUBMITTER_QUEUE",1000)).build());
+		final DotSubmitter dotSubmitter = DotConcurrentFactory.getInstance().getSubmitter("DELETE_CONTENTS_SUBMITTER");
 		final CompletionService<Map<String, String>> completionService = new ExecutorCompletionService<>(dotSubmitter);
 		final List<Future<Map<String, String>>> futures = new ArrayList<>();
-		final HttpServletRequest statelessRequest = RequestUtil.INSTANCE.createStatelessRequest(request);
 		final ContentletAPI contentletAPI = APILocator.getContentletAPI();
 		final AtomicInteger contentletsDeleted = new AtomicInteger(0);
 
@@ -112,7 +100,6 @@ public class CMSMaintenanceResource {
 			// this triggers the save
 			final Future<Map<String, String>> future = completionService.submit(() -> {
 
-				HttpServletRequestThreadLocal.INSTANCE.setRequest(statelessRequest);
 				final Map<String, String> resultMap = new HashMap<>();
 				final List<String> conditionletWithErrors = new ArrayList<>();
 
@@ -143,12 +130,11 @@ public class CMSMaintenanceResource {
 			futures.add(future);
 		}
 
-		printResponseEntityViewResult(outputStream, objectMapper,
+		printResponseEntityViewResult(outputStream,
 				completionService, futures, contentletsDeleted);
 	}
 
 	private void printResponseEntityViewResult(final OutputStream outputStream,
-											   final ObjectMapper objectMapper,
 											   final CompletionService<Map<String, String>> completionService,
 											   final List<Future<Map<String, String>>> futures,
 											   final AtomicInteger contentletsDeleted) {
@@ -180,10 +166,10 @@ public class CMSMaintenanceResource {
 			outputStream.write(StringPool.COMMA.getBytes(StandardCharsets.UTF_8));
 
 			ResponseUtil.wrapProperty(outputStream, "summary",
-					objectMapper.writeValueAsString(CollectionsUtils.map("time", stopWatch.getTime(),
+					CollectionsUtils.map("time", stopWatch.getTime(),
 							"affected", futures.size(),
 							"successCount", contentletsDeleted.get(),
-							"fails", resultMapFails)));
+							"fails", resultMapFails).toString());
 			outputStream.write(StringPool.COMMA.getBytes(StandardCharsets.UTF_8));
 
 			ResponseUtil.endWrapResponseEntityView(outputStream, true);
